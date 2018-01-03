@@ -43,5 +43,6 @@ Thumbs.db
 # Certs
 *.pem
 *.crt
+*.key
 config.json
-
+certs

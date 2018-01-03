@@ -19,23 +19,7 @@
 
 //app deps
 const thingShadow = require('./thing');
-const cmdLineProcess = require('./lib/cmdline');
 const isUndefined = require('./common/lib/is-undefined');
-
-
-// Get the UUID for the machine
-var   serialNumber = require('serial-number');
-serialNumber.preferUUID = true;
-var UUID = ''; 
-
-serialNumber(function (err, value) {
-   if(err) { 
-      console.log('Error getting UUID, ' + err)
-   } else { 
-   UUID = value;
-   }
-});
-
 
 //begin module
 
@@ -50,28 +34,66 @@ serialNumber(function (err, value) {
 // state information.
 //
 
-function syncDoorShadow(args) {
+function doorThing() {
    //
    // Instantiate the thing shadow class.
    //
+   args = {  
+      "_":[  
 
-/* from bbq-meter
-{
-   "host": "a3riiqm5a27d7f.iot.us-east-1.amazonaws.com",
-   "port": 8883,
-   "clientId": "First-BBQ-Contoller",
-   "thingName": "First-BBQ-Contoller",
-   "caCert": "root-CA.crt",
-   "clientCert": "631b77f641-certificate.pem.crt",
-   "privateKey": "631b77f641-private.pem.key"
-}
-*/
+      ],
+      "help":false,
+      "h":false,
+      "debug":false,
+      "Debug":false,
+      "D":false,
+      "f":"./certs",
+      "certDir":"./certs",
+      "certificate-dir":"./certs",
+      "F":"./config/aws-iot-config.json",
+      "configFile":"./config/aws-iot-config.json",
+      "configuration-file":"./config/aws-iot-config.json",
+      "protocol":"mqtts",
+      "Protocol":"mqtts",
+      "P":"mqtts",
+      "clientId":"E1076A0D-500B-5BA2-A50D-ACF6F8527D05",
+      "i":"E1076A0D-500B-5BA2-A50D-ACF6F8527D05",
+      "client-id":"E1076A0D-500B-5BA2-A50D-ACF6F8527D05",
+      "privateKey":"./certs/13ed694696-private.pem.key",
+      "k":"13ed694696-private.pem.key",
+      "private-key":"13ed694696-private.pem.key",
+      "clientCert":"./certs/13ed694696-certificate.pem.crt",
+      "c":"13ed694696-certificate.pem.crt",
+      "client-certificate":"13ed694696-certificate.pem.crt",
+      "caCert":"./certs/root-CA.crt",
+      "a":"root-CA.crt",
+      "ca-certificate":"root-CA.crt",
+      "testMode":1,
+      "t":1,
+      "test-mode":1,
+      "baseReconnectTimeMs":4000,
+      "r":4000,
+      "reconnect-period-ms":4000,
+      "keepAlive":300,
+      "K":300,
+      "keepalive":300,
+      "delay":4000,
+      "d":4000,
+      "delay-ms":4000,
+      "Host":"a3riiqm5a27d7f.iot.us-east-2.amazonaws.com",
+      "Port":8883,
+      "thingName":"home-garage-door"
+   }
+
+   if (!(this instanceof doorThing)) {
+      return new doorThing();
+   }
 
    const thingShadows = thingShadow({
       keyPath: args.privateKey,
       certPath: args.clientCert,
       caPath: args.caCert,
-      clientId: UUID,
+      clientId: args.clientId,
       region: args.region,
       baseReconnectTimeMs: args.baseReconnectTimeMs,
       keepalive: args.keepAlive,
@@ -81,12 +103,15 @@ function syncDoorShadow(args) {
       debug: args.Debug
    });
 
+   console.log('thingShadows: ' + JSON.stringify(thingShadows));
+   console.log('typeof(thingShadows.register) ' + typeof(thingShadows.register));
+
    //
    // Operation timeout in milliseconds
    //
    const operationTimeout = 10000;
 
-   const thingName = 'home-garage-door';
+   const thingName = args.thingName;
 
    var currentTimeout = null;
 
@@ -99,7 +124,11 @@ function syncDoorShadow(args) {
    //
    var stack = [];
 
-   function genericOperation(operation, state) {
+   this.genericOperation = function(operation, state) {
+
+      console.log('operation: ' + operation); 
+      console.log('state: ' + JSON.stringify(state)); 
+      console.log('typeof thingShadows[operation] ' + typeof(thingShadows[operation]));
       var clientToken = thingShadows[operation](thingName, state);
 
       if (clientToken === null) {
@@ -124,52 +153,21 @@ function syncDoorShadow(args) {
       }
    }
 
-   function generateRandomState() {
-      var rgbValues = {
-         red: 0,
-         green: 0,
-         blue: 0
-      };
-
-      rgbValues.red = Math.floor(Math.random() * 255);
-      rgbValues.green = Math.floor(Math.random() * 255);
-      rgbValues.blue = Math.floor(Math.random() * 255);
-
-      return {
-         state: {
-            desired: rgbValues
-         }
-      };
-   }
-
-   function mobileAppConnect() {
-      thingShadows.register(thingName, {
-            ignoreDeltas: false
-         },
-         function(err, failedTopics) {
-            if (isUndefined(err) && isUndefined(failedTopics)) {
-               console.log('Mobile thing registered.');
-            }
-         });
-   }
 
    function deviceConnect() {
+
+      console.log('thingShadows: ' + JSON.stringify(thingShadows));
       thingShadows.register(thingName, {
             ignoreDeltas: true
          },
          function(err, failedTopics) {
             if (isUndefined(err) && isUndefined(failedTopics)) {
                console.log('Device thing registered.');
-               genericOperation('update', generateRandomState());
             }
          });
    }
 
-   if (args.testMode === 1) {
-      mobileAppConnect();
-   } else {
-      deviceConnect();
-   }
+   deviceConnect();
 
    function handleStatus(thingName, stat, clientToken, stateObject) {
       var expectedClientToken = stack.pop();
@@ -178,19 +176,6 @@ function syncDoorShadow(args) {
          console.log('got \'' + stat + '\' status on: ' + thingName);
       } else {
          console.log('(status) client token mismtach on: ' + thingName);
-      }
-
-      if (args.testMode === 2) {
-         console.log('updated state to thing shadow');
-         //
-         // If no other operation is pending, restart it after 10 seconds.
-         //
-         if (currentTimeout === null) {
-            currentTimeout = setTimeout(function() {
-               currentTimeout = null;
-               genericOperation('update', generateRandomState());
-            }, 10000);
-         }
       }
    }
 
@@ -214,6 +199,11 @@ function syncDoorShadow(args) {
       if (args.testMode === 2) {
          genericOperation('update', generateRandomState());
       }
+   }
+
+   function handleMessage(thingName, message) {
+      cnosole.log('Emitting message');
+      this.emit(thingName,message);
    }
 
    thingShadows.on('connect', function() {
@@ -265,7 +255,17 @@ function syncDoorShadow(args) {
    thingShadows.on('timeout', function(thingName, clientToken) {
       handleTimeout(thingName, clientToken);
    });
-}
+};
 
-module.exports = syncDoorShadow;
+doorThing.prototype.publishState = function(state) {
+   console.log('Updating state');
+   this.genericOperation('update', state);
+};
+
+
+module.exports = doorThing;
+
+if (require.main === module) {
+   doorThing();
+}
 
