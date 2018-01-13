@@ -158,7 +158,7 @@ function doorThing() {
 
       console.log('thingShadows: ' + JSON.stringify(thingShadows));
       thingShadows.register(thingName, {
-            ignoreDeltas: true
+            ignoreDeltas: false
          },
          function(err, failedTopics) {
             if (isUndefined(err) && isUndefined(failedTopics)) {
@@ -258,7 +258,8 @@ function doorThing() {
 };
 
 doorThing.prototype.publishState = function(state) {
-   console.log('Updating state');
+//   console.log('Updating state');
+//   console.log('Updating state to: ' + JSON.stringify(state));
    this.genericOperation('update', state);
 };
 
