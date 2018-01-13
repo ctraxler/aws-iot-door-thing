@@ -14,12 +14,15 @@
  */
 
 //node.js deps
+const inherits = require('util').inherits;
+const events = require('events');
 
 //npm deps
 
 //app deps
 const thingShadow = require('./thing');
 const isUndefined = require('./common/lib/is-undefined');
+
 
 //begin module
 
@@ -59,12 +62,12 @@ function doorThing() {
       "clientId":"E1076A0D-500B-5BA2-A50D-ACF6F8527D05",
       "i":"E1076A0D-500B-5BA2-A50D-ACF6F8527D05",
       "client-id":"E1076A0D-500B-5BA2-A50D-ACF6F8527D05",
-      "privateKey":"./certs/13ed694696-private.pem.key",
-      "k":"13ed694696-private.pem.key",
-      "private-key":"13ed694696-private.pem.key",
-      "clientCert":"./certs/13ed694696-certificate.pem.crt",
-      "c":"13ed694696-certificate.pem.crt",
-      "client-certificate":"13ed694696-certificate.pem.crt",
+      "privateKey":"./certs/0d66f639cd-private.pem.key",
+      "k":"0d66f639cd-private.pem.key",
+      "private-key":"0d66f639cd-private.pem.key",
+      "clientCert":"./certs/0d66f639cd-certificate.pem.crt",
+      "c":"0d66f639cd-certificate.pem.crt",
+      "client-certificate":"0d66f639cd-certificate.pem.crt",
       "caCert":"./certs/root-CA.crt",
       "a":"root-CA.crt",
       "ca-certificate":"root-CA.crt",
@@ -80,7 +83,7 @@ function doorThing() {
       "delay":4000,
       "d":4000,
       "delay-ms":4000,
-      "Host":"a3riiqm5a27d7f.iot.us-east-2.amazonaws.com",
+      "Host":"a3riiqm5a27d7f.iot.us-east-1.amazonaws.com",
       "Port":8883,
       "thingName":"home-garage-door"
    }
@@ -88,6 +91,8 @@ function doorThing() {
    if (!(this instanceof doorThing)) {
       return new doorThing();
    }
+
+   var that = this;
 
    const thingShadows = thingShadow({
       keyPath: args.privateKey,
@@ -103,8 +108,6 @@ function doorThing() {
       debug: args.Debug
    });
 
-   console.log('thingShadows: ' + JSON.stringify(thingShadows));
-   console.log('typeof(thingShadows.register) ' + typeof(thingShadows.register));
 
    //
    // Operation timeout in milliseconds
@@ -156,7 +159,6 @@ function doorThing() {
 
    function deviceConnect() {
 
-      console.log('thingShadows: ' + JSON.stringify(thingShadows));
       thingShadows.register(thingName, {
             ignoreDeltas: false
          },
@@ -180,11 +182,8 @@ function doorThing() {
    }
 
    function handleDelta(thingName, stateObject) {
-      if (args.testMode === 2) {
-         console.log('unexpected delta in device mode: ' + thingName);
-      } else {
          console.log('delta on: ' + thingName + JSON.stringify(stateObject));
-      }
+         that.emit('delta', thingName, stateObject);
    }
 
    function handleTimeout(thingName, clientToken) {
@@ -265,6 +264,8 @@ doorThing.prototype.publishState = function(state) {
 
 
 module.exports = doorThing;
+
+inherits(doorThing, events.EventEmitter); 
 
 if (require.main === module) {
    doorThing();
